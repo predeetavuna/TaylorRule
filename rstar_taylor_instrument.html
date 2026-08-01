@@ -332,12 +332,12 @@
         <div class="ctrl">
           <div class="ctrl-top">
             <span class="ctrl-name">Current account adjustment, Δcurrent&nbsp;acct<span class="sub">savings-investment balance, coef −0.05/pt</span></span>
-            <span class="ctrl-val" id="v_ca">0.19%</span>
+            <span class="ctrl-val" id="v_ca">0.15%</span>
           </div>
-          <input type="range" id="s_ca" min="-0.5" max="0.5" step="0.01" value="0.19">
+          <input type="range" id="s_ca" min="-0.5" max="0.5" step="0.01" value="0.15">
         </div>
       </div>
-      <div class="link-note">Latest-quarter defaults shown (2025 Q4). <b>Reset →</b> <a href="#" id="reset1" style="color:var(--brass-dim);">restore defaults</a></div>
+      <div class="link-note">Latest-quarter defaults shown (2026 Q1). <b>Reset →</b> <a href="#" id="reset1" style="color:var(--brass-dim);">restore defaults</a></div>
     </div>
 
     <!-- PANEL 2 : Taylor Rule -->
@@ -357,9 +357,9 @@
         <div class="ctrl">
           <div class="ctrl-top">
             <span class="ctrl-name">r* input<span class="sub">linked to Panel 1, or override manually</span></span>
-            <span class="ctrl-val" id="v_rstarlink">2.13%</span>
+            <span class="ctrl-val" id="v_rstarlink">2.10%</span>
           </div>
-          <input type="range" id="s_rstarlink" min="-2" max="5" step="0.01" value="2.13" disabled>
+          <input type="range" id="s_rstarlink" min="-2" max="5" step="0.01" value="2.10" disabled>
           <div class="toggle-row">
             <button class="toggle-btn active" id="linkOn">Linked to Panel 1</button>
             <button class="toggle-btn" id="linkOff">Manual override</button>
@@ -368,12 +368,12 @@
         <div class="ctrl">
           <div class="ctrl-top">
             <span class="ctrl-name">Inflation, π<span class="sub">PCE, year-over-year</span></span>
-            <span class="ctrl-val" id="v_pi">2.80%</span>
+            <span class="ctrl-val" id="v_pi">3.10%</span>
           </div>
-          <input type="range" id="s_pi" min="0" max="8" step="0.05" value="2.80">
+          <input type="range" id="s_pi" min="0" max="8" step="0.05" value="3.10">
           <div class="toggle-row">
-            <button class="toggle-btn active" id="piHeadline">Headline (2.80%)</button>
-            <button class="toggle-btn" id="piTrim">Trimmed-mean (2.50%)</button>
+            <button class="toggle-btn active" id="piHeadline">Headline (3.10%)</button>
+            <button class="toggle-btn" id="piTrim">Trimmed-mean (2.37%)</button>
           </div>
         </div>
         <div class="ctrl">
@@ -386,23 +386,23 @@
         <div class="ctrl">
           <div class="ctrl-top">
             <span class="ctrl-name">Output gap<span class="sub">CBO: (actual − potential GDP) / potential</span></span>
-            <span class="ctrl-val" id="v_gap">1.03%</span>
+            <span class="ctrl-val" id="v_gap">0.98%</span>
           </div>
-          <input type="range" id="s_gap" min="-6" max="6" step="0.05" value="1.03">
+          <input type="range" id="s_gap" min="-6" max="6" step="0.05" value="0.98">
         </div>
       </div>
 
       <div class="compare">
         <div class="chip">
-          <div class="clabel">Actual fed funds rate (2025 Q4)</div>
-          <div class="cval">3.90%</div>
+          <div class="clabel">Actual fed funds rate (2026 Q1)</div>
+          <div class="cval">3.64%</div>
         </div>
         <div class="chip">
           <div class="clabel">Implied − actual</div>
           <div class="cval" id="gapOut">—</div>
         </div>
       </div>
-      <div class="link-note">Latest-quarter defaults shown (2025 Q4). <b>Reset →</b> <a href="#" id="reset2" style="color:var(--brass-dim);">restore defaults</a></div>
+      <div class="link-note">Latest-quarter defaults shown (2026 Q1). <b>Reset →</b> <a href="#" id="reset2" style="color:var(--brass-dim);">restore defaults</a></div>
     </div>
 
   </div>
@@ -432,7 +432,7 @@ const demog = document.getElementById('s_demog');
 const fiscal = document.getElementById('s_fiscal');
 const ca = document.getElementById('s_ca');
 
-const DEFAULTS1 = {g:1.99, sigma:1.00, theta:-0.39, demog:-0.38, fiscal:0.72, ca:0.19};
+const DEFAULTS1 = {g:1.99, sigma:1.00, theta:-0.39, demog:-0.38, fiscal:0.72, ca:0.15};
 
 function fmt(n){ return (n>=0?'':'') + n.toFixed(2); }
 
@@ -477,8 +477,8 @@ const piHeadline = document.getElementById('piHeadline');
 const piTrim = document.getElementById('piTrim');
 
 let linked = true;
-const DEFAULTS2 = {pi:2.80, pistar:2.00, gap:1.03};
-const ACTUAL_LOW = 3.90, ACTUAL_HIGH = 3.90;
+const DEFAULTS2 = {pi:3.10, pistar:2.00, gap:0.98};
+const ACTUAL_LOW = 3.64, ACTUAL_HIGH = 3.64;
 
 function computeTaylor(){
   const rv = parseFloat(rstarLink.value), piv = parseFloat(pi.value),
@@ -515,12 +515,12 @@ linkOff.addEventListener('click', ()=>{
 });
 
 piHeadline.addEventListener('click', ()=>{
-  pi.value = 2.80;
+  pi.value = 3.10;
   piHeadline.classList.add('active'); piTrim.classList.remove('active');
   computeTaylor();
 });
 piTrim.addEventListener('click', ()=>{
-  pi.value = 2.50;
+  pi.value = 2.37;
   piTrim.classList.add('active'); piHeadline.classList.remove('active');
   computeTaylor();
 });
