@@ -257,6 +257,31 @@
   .axis-label{font-family:'IBM Plex Mono',monospace;font-size:10px;fill:var(--ink-faint);}
   .hist-note{font-size:11.5px;color:var(--ink-faint);margin-top:10px;line-height:1.6;}
 
+  .chart-wrap{position:relative;}
+  .chart-wrap svg{cursor:crosshair;}
+  .crosshair-line{stroke:var(--ink-dim);stroke-width:1;stroke-dasharray:3,3;pointer-events:none;opacity:0;}
+  .crosshair-dot{pointer-events:none;opacity:0;stroke:var(--bg-panel);stroke-width:1.5;}
+  .chart-tooltip{
+    position:absolute;
+    top:10px;
+    pointer-events:none;
+    background:var(--bg-readout);
+    border:1px solid var(--grid-strong);
+    padding:9px 12px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    color:var(--ink);
+    white-space:nowrap;
+    opacity:0;
+    transition:opacity 0.08s;
+    z-index:5;
+  }
+  .chart-tooltip .tt-date{color:var(--brass-bright);font-weight:600;margin-bottom:5px;letter-spacing:0.03em;}
+  .chart-tooltip .tt-row{display:flex;justify-content:space-between;gap:14px;line-height:1.6;}
+  .chart-tooltip .tt-row .tt-label{color:var(--ink-dim);}
+  .chart-tooltip .tt-row.ours .tt-val{color:var(--line-ours);}
+  .chart-tooltip .tt-row.actual .tt-val{color:var(--line-actual);}
+
   footer{
     margin-top:28px;
     font-size:11.5px;
@@ -413,8 +438,15 @@
       <span><span class="swatch" style="background:var(--line-ours)"></span>Taylor-implied (our r*)</span>
       <span><span class="swatch" style="background:var(--line-actual)"></span>Actual fed funds rate</span>
     </div>
-    <svg id="histChart" viewBox="0 0 1080 260"></svg>
-    <div class="hist-note">Static historical series from the full model build (headline PCE, our per-capita-growth r*). The live panels above are a scenario tool for the current-quarter starting point — moving the sliders does not redraw this chart.</div>
+    <div class="chart-wrap">
+      <svg id="histChart" viewBox="0 0 1080 260"></svg>
+      <div class="chart-tooltip" id="chartTooltip">
+        <div class="tt-date" id="ttDate">1971</div>
+        <div class="tt-row ours"><span class="tt-label">Taylor-implied (ours)</span><span class="tt-val" id="ttOurs">—</span></div>
+        <div class="tt-row actual"><span class="tt-label">Actual fed funds</span><span class="tt-val" id="ttActual">—</span></div>
+      </div>
+    </div>
+    <div class="hist-note">Static historical series from the full model build (headline PCE, our per-capita-growth r*). The live panels above are a scenario tool for the current-quarter starting point — moving the sliders does not redraw this chart. Hover to inspect any year.</div>
   </div>
 
   <footer>
@@ -591,6 +623,86 @@ const actual = [4.66,4.43,8.73,10.50,5.82,5.04,5.54,7.93,11.19,13.36,16.38,12.26
       svg.appendChild(t);
     }
   });
+
+  // ---------- Hover: crosshair + tooltip ----------
+  const crossLine = document.createElementNS(svgns,'line');
+  crossLine.setAttribute('class','crosshair-line');
+  crossLine.setAttribute('y1', padT);
+  crossLine.setAttribute('y2', H-padB);
+  svg.appendChild(crossLine);
+
+  const dotOurs = document.createElementNS(svgns,'circle');
+  dotOurs.setAttribute('class','crosshair-dot');
+  dotOurs.setAttribute('r', 4);
+  dotOurs.setAttribute('fill', 'var(--line-ours)');
+  svg.appendChild(dotOurs);
+
+  const dotActual = document.createElementNS(svgns,'circle');
+  dotActual.setAttribute('class','crosshair-dot');
+  dotActual.setAttribute('r', 4);
+  dotActual.setAttribute('fill', 'var(--line-actual)');
+  svg.appendChild(dotActual);
+
+  const tooltip = document.getElementById('chartTooltip');
+  const ttDate = document.getElementById('ttDate');
+  const ttOurs = document.getElementById('ttOurs');
+  const ttActual = document.getElementById('ttActual');
+  const wrap = svg.parentElement;
+
+  function nearestIndex(svgX){
+    const frac = (svgX - padL) / (W - padL - padR);
+    let i = Math.round(frac * (n-1));
+    return Math.max(0, Math.min(n-1, i));
+  }
+
+  function showAt(i){
+    const px = x(i);
+    crossLine.setAttribute('x1', px); crossLine.setAttribute('x2', px);
+    crossLine.style.opacity = 1;
+
+    dotOurs.setAttribute('cx', px); dotOurs.setAttribute('cy', y(taylorOurs[i]));
+    dotActual.setAttribute('cx', px); dotActual.setAttribute('cy', y(actual[i]));
+    dotOurs.style.opacity = 1; dotActual.style.opacity = 1;
+
+    ttDate.textContent = years[i];
+    ttOurs.textContent = (taylorOurs[i]>=0?'+':'') + taylorOurs[i].toFixed(2) + '%';
+    ttActual.textContent = (actual[i]>=0?'+':'') + actual[i].toFixed(2) + '%';
+
+    // position tooltip near the crosshair, flipping side near the right edge
+    const wrapWidth = wrap.getBoundingClientRect().width;
+    const pxScreen = (px / W) * wrapWidth;
+    tooltip.style.opacity = 1;
+    if (pxScreen > wrapWidth - 160) {
+      tooltip.style.left = 'auto';
+      tooltip.style.right = (wrapWidth - pxScreen + 12) + 'px';
+    } else {
+      tooltip.style.right = 'auto';
+      tooltip.style.left = (pxScreen + 12) + 'px';
+    }
+  }
+
+  function hideCrosshair(){
+    crossLine.style.opacity = 0;
+    dotOurs.style.opacity = 0;
+    dotActual.style.opacity = 0;
+    tooltip.style.opacity = 0;
+  }
+
+  svg.addEventListener('mousemove', (e)=>{
+    const rect = svg.getBoundingClientRect();
+    const svgX = ((e.clientX - rect.left) / rect.width) * W;
+    showAt(nearestIndex(svgX));
+  });
+  svg.addEventListener('mouseleave', hideCrosshair);
+
+  // touch support
+  svg.addEventListener('touchmove', (e)=>{
+    if(!e.touches.length) return;
+    const rect = svg.getBoundingClientRect();
+    const svgX = ((e.touches[0].clientX - rect.left) / rect.width) * W;
+    showAt(nearestIndex(svgX));
+  }, {passive:true});
+  svg.addEventListener('touchend', hideCrosshair);
 })();
 
 // initial compute
