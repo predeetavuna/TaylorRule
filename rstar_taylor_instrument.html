@@ -282,6 +282,104 @@
   .chart-tooltip .tt-row.ours .tt-val{color:var(--line-ours);}
   .chart-tooltip .tt-row.actual .tt-val{color:var(--line-actual);}
 
+  /* ---- Data release alert banner ---- */
+  .data-alert{
+    border:1px solid var(--brass-dim);
+    background:linear-gradient(180deg, rgba(201,161,92,0.07), rgba(201,161,92,0.02));
+    margin-bottom:20px;
+    padding:14px 20px 16px;
+  }
+  .da-head{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:12px;
+  }
+  .da-icon{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--brass-bright);
+    font-size:13px;
+  }
+  .da-title{
+    font-family:'IBM Plex Sans Condensed', sans-serif;
+    font-weight:600;
+    font-size:13px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--ink);
+  }
+  .da-verified{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    color:var(--ink-faint);
+    margin-left:auto;
+  }
+  .da-events{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(230px,1fr));
+    gap:10px;
+  }
+  .da-event{
+    border:1px solid var(--grid-strong);
+    background:var(--bg-readout);
+    padding:10px 12px;
+    position:relative;
+  }
+  .da-event.due-soon{
+    border-color:var(--brass);
+    background:rgba(201,161,92,0.08);
+  }
+  .da-event.overdue{
+    border-color:var(--red);
+    background:rgba(217,112,90,0.09);
+  }
+  .da-ev-name{
+    font-size:12.5px;
+    color:var(--ink);
+    line-height:1.4;
+    margin-bottom:4px;
+  }
+  .da-ev-when{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--brass);
+    margin-bottom:5px;
+  }
+  .da-event.due-soon .da-ev-when{color:var(--brass-bright);}
+  .da-event.overdue .da-ev-when{color:var(--red);}
+  .da-ev-affects{
+    font-size:10.5px;
+    color:var(--ink-faint);
+    line-height:1.5;
+  }
+  .da-ev-affects b{color:var(--ink-dim);font-weight:500;}
+  .da-refreshed{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    color:var(--ink-dim);
+    flex-basis:100%;
+    margin-top:-4px;
+  }
+  .da-refreshed b{color:var(--brass);font-weight:600;}
+  .da-refreshed.stale b{color:var(--red);}
+  .da-ev-status{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.03em;
+    margin-top:6px;
+    padding-top:6px;
+    border-top:1px dashed var(--grid-strong);
+  }
+  .da-ev-status.pending{color:var(--red);}
+  .da-ev-status.incorporated{color:var(--line-hlw);}
+  .da-note{
+    font-size:11px;
+    color:var(--ink-faint);
+    margin-top:10px;
+    line-height:1.6;
+  }
+
   footer{
     margin-top:28px;
     font-size:11.5px;
@@ -302,6 +400,17 @@
     </div>
     <div class="doc-tag">UNITED STATES · QUARTERLY MODEL</div>
   </header>
+
+  <div class="data-alert" id="dataAlert">
+    <div class="da-head">
+      <span class="da-icon">&#9201;</span>
+      <span class="da-title">Next data due — model update triggers</span>
+      <span class="da-verified" id="daVerified">release dates verified 2026-08-03</span>
+      <span class="da-refreshed" id="daRefreshed"><!-- populated by JS --></span>
+    </div>
+    <div class="da-events" id="daEvents"><!-- populated by JS --></div>
+    <div class="da-note">Countdown and "days since refresh" are computed live from your device clock, so they stay accurate without a live feed — but the release dates and the <code>MODEL_LAST_REFRESHED</code> stamp are both hardcoded and won't self-update. Re-check the source calendars periodically (BEA, Dallas Fed, FOMC, OMB/FRED), and whenever the pipeline is re-run against real data, update <code>MODEL_LAST_REFRESHED</code> in the script alongside <code>DEFAULTS1</code>/<code>DEFAULTS2</code> and the <code>DATA_EVENTS</code> array.</div>
+  </div>
 
   <div class="panels">
 
@@ -456,6 +565,105 @@
 </div>
 
 <script>
+// ---------- Data release alert banner ----------
+// Hardcoded from official calendars as of the "verified" date below. This is a
+// static file with no live feed, so these need periodic manual refresh.
+const MODEL_LAST_REFRESHED = "2026-08-01"; // update this whenever the pipeline is re-run against real data
+
+const DATA_EVENTS = [
+  {
+    name: "BEA Personal Income &amp; Outlays, July 2026",
+    date: "2026-08-26T12:30:00Z", // 8:30am ET
+    affects: "Headline PCE inflation, &pi; (Panel 2). Dallas Fed trimmed-mean PCE follows the same BEA schedule and is typically released same-day/next business day."
+  },
+  {
+    name: "GDP, Q2 2026 — Second Estimate",
+    date: "2026-08-26T12:30:00Z", // 8:30am ET, same release day as PCE
+    affects: "Real GDP level feeding trend growth g (Panel 1) and the CBO output gap (Panel 2)."
+  },
+  {
+    name: "FOMC Meeting Decision",
+    date: "2026-09-16T18:00:00Z", // 2:00pm ET, decision day of the 2-day meeting
+    affects: "Actual fed funds rate — the benchmark r* and the Taylor Rule are compared against (implied &minus; actual gap)."
+  },
+  {
+    name: "Debt held by public / GDP — quarterly update",
+    date: null, // recurring, no fixed calendar date
+    affects: "&Delta;fiscal (Panel 1). FRED FYGFGDQ188S updates roughly quarterly; the full OMB annual actual (needed to retire the current growth-rate-spliced 2026 Q1 bridge) typically lands with the next President's Budget or Mid-Session Review."
+  }
+];
+
+function renderDataAlert(){
+  const container = document.getElementById('daEvents');
+  const now = new Date();
+  const refreshedDate = new Date(MODEL_LAST_REFRESHED + "T00:00:00Z");
+
+  // ---- "model last refreshed" line ----
+  const daysSinceRefresh = Math.floor((now - refreshedDate) / (1000*60*60*24));
+  const refreshedEl = document.getElementById('daRefreshed');
+  const refreshedDateStr = refreshedDate.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+  const isStale = daysSinceRefresh > 45; // rough heuristic: flag if it's been a while
+  refreshedEl.className = 'da-refreshed' + (isStale ? ' stale' : '');
+  refreshedEl.innerHTML = `Model last refreshed against real data: <b>${refreshedDateStr}</b> (${daysSinceRefresh}d ago)`;
+
+  // Separate dated vs recurring, sort dated ones chronologically
+  const dated = DATA_EVENTS.filter(e=>e.date).sort((a,b)=> new Date(a.date) - new Date(b.date));
+  const recurring = DATA_EVENTS.filter(e=>!e.date);
+
+  function fmtWhen(daysDiff, dateObj){
+    const dateStr = dateObj.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+    if(daysDiff < 0){
+      return `${dateStr} — ${Math.abs(Math.round(daysDiff))}d overdue in this file`;
+    } else if(daysDiff < 1){
+      return `${dateStr} — due today`;
+    } else {
+      return `${dateStr} — in ${Math.ceil(daysDiff)}d`;
+    }
+  }
+
+  const cards = [];
+
+  dated.forEach(ev=>{
+    const d = new Date(ev.date);
+    const diffDays = (d - now) / (1000*60*60*24);
+    let cls = 'da-event';
+    if(diffDays < 0) cls += ' overdue';
+    else if(diffDays <= 7) cls += ' due-soon';
+
+    // ---- incorporation status: compare release date against last model refresh ----
+    let statusHtml = '';
+    if(diffDays < 0){
+      if(refreshedDate >= d){
+        statusHtml = `<div class="da-ev-status incorporated">&#10003; incorporated in current model run</div>`;
+      } else {
+        statusHtml = `<div class="da-ev-status pending">&#9888; released, not yet run through the model</div>`;
+      }
+    }
+
+    cards.push(`
+      <div class="${cls}">
+        <div class="da-ev-name">${ev.name}</div>
+        <div class="da-ev-when">${fmtWhen(diffDays, d)}</div>
+        <div class="da-ev-affects"><b>Updates:</b> ${ev.affects}</div>
+        ${statusHtml}
+      </div>
+    `);
+  });
+
+  recurring.forEach(ev=>{
+    cards.push(`
+      <div class="da-event">
+        <div class="da-ev-name">${ev.name}</div>
+        <div class="da-ev-when">Recurring — check FRED</div>
+        <div class="da-ev-affects"><b>Updates:</b> ${ev.affects}</div>
+      </div>
+    `);
+  });
+
+  container.innerHTML = cards.join('');
+}
+renderDataAlert();
+
 // ---------- Panel 1 : r* ----------
 const g = document.getElementById('s_g');
 const sigma = document.getElementById('s_sigma');
