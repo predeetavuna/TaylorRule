@@ -572,9 +572,14 @@ const MODEL_LAST_REFRESHED = "2026-08-01"; // update this whenever the pipeline 
 
 const DATA_EVENTS = [
   {
-    name: "BEA Personal Income &amp; Outlays, July 2026",
+    name: "Headline PCE inflation (BEA), July 2026",
     date: "2026-08-26T12:30:00Z", // 8:30am ET
-    affects: "Headline PCE inflation, &pi; (Panel 2). Dallas Fed trimmed-mean PCE follows the same BEA schedule and is typically released same-day/next business day."
+    affects: "&pi; — headline inflation input (Panel 2), the default when \"Headline\" is toggled."
+  },
+  {
+    name: "Dallas Fed Trimmed-Mean PCE, July 2026",
+    date: "2026-08-26T12:30:00Z", // follows BEA's Personal Income & Outlays release schedule
+    affects: "&pi; — trimmed-mean inflation input (Panel 2), the default when \"Trimmed-mean\" is toggled. Released alongside BEA's headline PCE, same day."
   },
   {
     name: "GDP, Q2 2026 — Second Estimate",
